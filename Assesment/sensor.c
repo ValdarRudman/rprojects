@@ -60,7 +60,7 @@ get_temp(void)
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-
+	
 	struct values *msg;
 	packetbuf_clear();
 	msg = (struct values *) packetbuf_dataptr();
@@ -100,11 +100,8 @@ PROCESS_THREAD(send_sensor_info_process, ev, data)
 	// etimer, used to take tempature and light readings as set times
 	static struct etimer etimer;
 
-	//Variable to work out values from the readings
+	//Variable to store tempature reading initially
 	static int val;
-	static float s = 0;
-	static int dec;
-	static float frac;
 	
 	//On process exit, close both broadcast and unicast connections
 	PROCESS_EXITHANDLER(broadcast_close(&broadcast);)
@@ -113,13 +110,13 @@ PROCESS_THREAD(send_sensor_info_process, ev, data)
 	PROCESS_BEGIN();
 	
 	//Open connections
-	broadcast_open(&broadcast, 129, &broadcast_call);
-	unicast_open(&uc, 146, &unicast_callbacks);
+	broadcast_open(&broadcast, 110, &broadcast_call);
+	unicast_open(&uc, 111, &unicast_callbacks);
 
 	while(1){
 		
 		//Set time for etimer
-		etimer_set(&etimer, 2000);
+		etimer_set(&etimer, 1000);
 		
 		//Wait till timer up to take tempature and light readings
 		PROCESS_WAIT_UNTIL(etimer_expired(&etimer));

@@ -2,7 +2,7 @@
  * \file
  *         Collector for assesment project
  * \author
- *         Valdar Rudman <valdar.rudman@mycit.ie>
+ *         6Valdar Rudman <valdar.rudman@mycit.ie>
  */
 
 #include "contiki.h"
@@ -143,13 +143,13 @@ PROCESS_THREAD(broadcast_process, ev, data)
  	PROCESS_BEGIN();
 	
 	//Open connections
- 	broadcast_open(&broadcast, 129, &broadcast_call);	
-	unicast_open(&uc, 146, &unicast_callbacks);
+ 	broadcast_open(&broadcast, 110, &broadcast_call);	
+	unicast_open(&uc, 111, &unicast_callbacks);
 
   	while(1) {
 
     		//Set time for etimer
-		etimer_set(&etimer, 3000);
+		etimer_set(&etimer, 2200);
 		
 		//Wait till timer to get readings from sensors
     		//PROCESS_WAIT_EVENT_UNTIL(etimer_expired(&etimer));
@@ -184,12 +184,12 @@ PROCESS_THREAD(all_values_process, ev, data)
 
 	while(1){
 
-		etimer_set(&etimer, 6000);
+		etimer_set(&etimer, 6600);
 			
 		PROCESS_WAIT_EVENT();
 			
 		//If the list contains all the senors will printout. Remove this if you want to print regardless how many sensors there are.
-		if(list_length(sensors_list) == 10){
+	//	if(list_length(sensors_list) == 10){
 
 			struct sensor *s;
 		
@@ -214,7 +214,7 @@ PROCESS_THREAD(all_values_process, ev, data)
 				printf("SENSOR %d.%d\nAverage Temp: %d\nAverage Light: %d\n\n", s->addr.u8[0], s->addr.u8[1], (temp / s->count), (light / s->count));
 			}
 
-		}
+	//	}
 
 		etimer_reset(&etimer);
 
