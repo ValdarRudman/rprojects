@@ -8,7 +8,6 @@
 #include "contiki.h"
 #include "net/rime/rime.h"
 #include <stdio.h>
-#include "sys/ctimer.h"
 
 /*---------------------------------------------------------------------------*/
 
