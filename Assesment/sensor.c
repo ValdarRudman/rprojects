@@ -63,7 +63,8 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 	
 	struct values *msg;
 	packetbuf_clear();
-	msg = (struct values *) packetbuf_dataptr();
+	msg = (struct values *) packetbuf_dataptr(); // int ar[1]; arr[0] =1;
+
 	packetbuf_set_datalen(sizeof(struct values));
 
 	msg->temp = (temp / count);
@@ -71,6 +72,13 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
  
 	//Test output of tempature and light for the sensor. Values are the average
 	//printf("SENSOR VALUES -- temp: %d -- light: %d\n", msg->temp, msg->light);		
+
+	//Reset values for temp, light and count to 0 when values have been sent/ This will be changed to implement an array of size x and we will store temp and light reading in there.
+	//the value in the array will be shifted one to the left for new value and we can add the elements in the array and use the size of the array to get the average. This should be in a seperate method
+	//Method called here? or just before etimer reset??
+	temp = 0;
+	light = 0;
+	count = 0;
 		
       	unicast_send(&uc, from);
 	
@@ -80,7 +88,7 @@ static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
 
 /*---------------------------------------------------------------------------*/
 
-//Code that is executed if aunicast signal is received.
+//Code that is executed if a unicast signal is received.
 static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
