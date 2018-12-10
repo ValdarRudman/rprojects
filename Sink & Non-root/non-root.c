@@ -36,8 +36,9 @@ static int check = 0;
 //Struct containg the readings from the sensors. This will be sent to the collector
 struct beacon{
 	
-	uint16_t metric;
-	uint16_t seq;
+	int metric;
+	int seq;
+	int resetSeq;
 
 };
 /*---------------------------------------------------------------------------*/
@@ -46,15 +47,26 @@ struct beacon{
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-
+	
 	struct beacon *msg;
 
 	msg = packetbuf_dataptr();
 
+	int resetSeq = 0;
+
+	//Checks to see if sequence has been reset. It also checks to see if the seq > 0
+	//It does this so broadcasts from nodes that arent the sink cause a loop with each other
+	if(msg->resetSeq == 1 && seq > 0){
+
+		seq = -1;
+		resetSeq = 1;
+		
+	}
+
 	int newMetric = msg->metric;
 	int newSeq = msg->seq;
 	
-	// check to see if new sequence Use != so you can reset sequence in sink
+	// check to see if new sequence 
 	if(seq < newSeq){ // seq < newSeq
 		
 		metric = newMetric + 1;
@@ -74,11 +86,13 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 
 		msg->metric = metric;
 		msg->seq = seq;
+		msg->resetSeq = resetSeq;
 
 		broadcast_send(&broadcast);
+		
 
 	}// if same sequence, checks to see if metric is larger then receiving metric
-	else if(metric > newMetric){
+	else if(metric > newMetric + 1){
 
 		metric = newMetric + 1;
 		linkaddr_copy(parent, from);
@@ -95,6 +109,7 @@ broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 
 		msg->metric = metric;
 		msg->seq = seq;
+		msg->resetSeq = resetSeq;
 
 		broadcast_send(&broadcast);
 
@@ -130,7 +145,6 @@ PROCESS_THREAD(non_root_process, ev, data)
 	
 	//Open connections
 	broadcast_open(&broadcast, 110, &broadcast_call);
-	unicast_open(&uc, 111, &unicast_callbacks);
 
 	while(1){
 		
@@ -140,7 +154,7 @@ PROCESS_THREAD(non_root_process, ev, data)
 		//Wait till timer up to take tempature and light readings
 		PROCESS_WAIT_UNTIL(etimer_expired(&etimer));
 
-		printf("3333 ETIMER\n\n");
+		//printf("3333 ETIMER\n\n");
 
 		//check to see not connected and has received at leats one beacon
 		if(connected == 0 && check == 1){
@@ -155,10 +169,6 @@ PROCESS_THREAD(non_root_process, ev, data)
 		
 		//set connected to 0, this will be set back to 1 if an ok is received from another node
 		connected = 0;
-
-		packetbuf_copyfrom("hello", 6);
-
-		unicast_send(&uc, parent);
 
 	}
 

@@ -32,6 +32,7 @@ static struct beacon{
 
 	int metric; //uint16_t
 	int seq;
+	int resetSeq;
 
 };
 /*---------------------------------------------------------------------------*/
@@ -78,7 +79,7 @@ PROCESS_THREAD(broadcast_process, ev, data)
 
 		PROCESS_WAIT_EVENT();
 
-        printf("2222 ETIMER\n\n");
+        //printf("2222 ETIMER\n\n");
 					
 		struct beacon *msg;
 
@@ -87,9 +88,24 @@ PROCESS_THREAD(broadcast_process, ev, data)
 		msg = (struct beacon *) packetbuf_dataptr(); 
 
 		packetbuf_set_datalen(sizeof(struct beacon));
+		
+		//when seq is at a certain number it resets seq to 0 and sets the resetSeq variable to tell all nodes
+		//seq has been reset
+		if(seq == 2){
+
+			seq = -1;
+			msg->resetSeq = 1;
+			
+		}
+        else{
+		
+			msg->resetSeq = 0;
+			
+		}
 
 		msg->metric = metric;
-		msg->seq = seq + 1;
+        seq += 1;
+		msg->seq = seq;
 
 		//Broadcast packet to all sensors
 		broadcast_send(&broadcast);
