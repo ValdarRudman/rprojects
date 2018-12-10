@@ -40,94 +40,69 @@ struct beacon{
 	uint16_t seq;
 
 };
-
-
 /*---------------------------------------------------------------------------*/
 
 //If broadcast signal received executes the following code
 static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
-	//converts information received. This could be incorrect
-	char *msg = (char *)packetbuf_dataptr();
-	char *nc = "nc";
 
-	//checks to see if info recieved is equal to nc. NC is no connection
-	//If equal sends this nodes metric and sequence
-	if(strcmp(nc, msg) == 0){
+	struct beacon *msg;
 
-		struct beacon *msg;
+	msg = packetbuf_dataptr();
 
+	int newMetric = msg->metric;
+	int newSeq = msg->seq;
+	
+	// check to see if new sequence Use != so you can reset sequence in sink
+	if(seq < newSeq){ // seq < newSeq
+		
+		metric = newMetric + 1;
+		seq = newSeq;
+		linkaddr_copy(parent, from);
+
+		printf("New BEACON PARENT for non-root: BEACON PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
+
+		connected = 1;
+		check = 1;
+
+		packetbuf_clear();
+
+		//sends new sequence and metric
 		msg = (struct values *) packetbuf_dataptr(); 
+		packetbuf_set_datalen(sizeof(struct beacon));
 
 		msg->metric = metric;
-		msg->seq= seq;
+		msg->seq = seq;
 
-		unicast_send(&uc, from);
-		
+		broadcast_send(&broadcast);
 
-	}
-	else{ // if not equals reads in beacon
+	}// if same sequence, checks to see if metric is larger then receiving metric
+	else if(metric > newMetric){
 
-		struct beacon *msg;
+		metric = newMetric + 1;
+		linkaddr_copy(parent, from);
 
-		msg = packetbuf_dataptr();
+		printf("New METRIC PARENT for non-root: Metric PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
 
-		int newMetric = msg->metric;
-		int newSeq = msg->seq;
-	
-		// check to see if new sequence Use != so you can reset sequence in sink
-		if(seq != newSeq){ // seq < newSeq
-		
-			metric = newMetric + 1;
-			seq = newSeq;
-			linkaddr_copy(parent, from);
+		connected = 1;
+		check = 1;
 
-			printf("New BEACON PARENT for non-root: BEACON PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
+		packetbuf_clear();
 
-			connected = 1;
-			check = 1;
+		msg = (struct beacon *) packetbuf_dataptr(); 
+		packetbuf_set_datalen(sizeof(struct beacon));
 
-			packetbuf_clear();
+		msg->metric = metric;
+		msg->seq = seq;
 
-			//sends new sequence and metric
-			msg = (struct values *) packetbuf_dataptr(); 
-			packetbuf_set_datalen(sizeof(struct beacon));
-
-			msg->metric = metric;
-			msg->seq= seq;
-
-			broadcast_send(&broadcast);
-
-		}// if same sequence, checks to see if metric is larger then receiving metric
-		else if(metric > newMetric){
-
-			metric = newMetric + 1;
-			linkaddr_copy(parent, from);
-
-			printf("New METRIC PARENT for non-root: Metric PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
-
-			connected = 1;
-			check = 1;
-
-			packetbuf_clear();
-
-			msg = (struct values *) packetbuf_dataptr(); 
-			packetbuf_set_datalen(sizeof(struct beacon));
-
-			msg->metric = metric;
-			msg->seq= seq;
-
-			broadcast_send(&broadcast);
-
-		}
+		broadcast_send(&broadcast);
 
 	}
 
 }
 //Calls broadcast_recv if a broadcast is recieved, executing whats in the broadcast_recv method
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
-
 /*---------------------------------------------------------------------------*/
 
 //Code that is executed if a unicast signal is received.
@@ -135,59 +110,9 @@ static void
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
 
-	char *msg = (char *)packetbuf_dataptr();
-
-	char *hello = "hello";
-	char *ok = "ok";
-	
-	//check to see if node is testing connection or sending an ok to say connected
-	if(strcmp(hello, msg) == 0){
-
-		if(metric != -1){
-
-			printf("TEST FROM - %d.%d\n\n", from->u8[0], from->u8[1]);
-
-			packetbuf_copyfrom("ok", 3);
-
-			unicast_send(&uc, from);
-
-		}
-
-	}
-	else if(strcmp(ok, msg) == 0){
-
-		connected = 1;
-
-		printf("TEST OK from PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
-
-	}
-	else
-	{
-		// if message is beacon 
-		struct beacon *msg;
-
-		msg = packetbuf_dataptr();
-
-		int newMetric = msg->metric;
-		int newSeq = msg->seq;
-
-		if(metric > newMetric){
-		
-			metric = newMetric + 1;
-			seq = newSeq;
-			linkaddr_copy(parent, from);
-
-			printf("New BEACON PARENT for non-root: BEACON PARENT - %d.%d\n\n", from->u8[0], from->u8[1]);
-
-			connected = 1;
-		}
-
-	}
-
 }
 //Execute recv_uc if unicast signal is received
 static const struct unicast_callbacks unicast_callbacks = {recv_uc};
-
 /*---------------------------------------------------------------------------*/
 
 //Define the process code
@@ -210,10 +135,12 @@ PROCESS_THREAD(non_root_process, ev, data)
 	while(1){
 		
 		//Set time for etimer
-		etimer_set(&etimer, 4000);
+		etimer_set(&etimer, 3333);
 		
 		//Wait till timer up to take tempature and light readings
 		PROCESS_WAIT_UNTIL(etimer_expired(&etimer));
+
+		printf("3333 ETIMER\n\n");
 
 		//check to see not connected and has received at leats one beacon
 		if(connected == 0 && check == 1){
@@ -222,11 +149,7 @@ PROCESS_THREAD(non_root_process, ev, data)
 			// to see if any nodes in range to connect to
 			metric = -1;
 
-			packetbuf_copyfrom("nc", 3);
-
 			printf("NOT CONNECTED\n\n");
-
-			broadcast_send(&broadcast);
 
 		}
 		
@@ -241,5 +164,4 @@ PROCESS_THREAD(non_root_process, ev, data)
 
 	PROCESS_END();
 }
-
 /*---------------------------------------------------------------------------*/
