@@ -34,7 +34,6 @@ static struct beacon{
 	int seq;
 
 };
-
 /*---------------------------------------------------------------------------*/
 
 //If broadcast signal received executes the following code
@@ -42,52 +41,18 @@ static void
 broadcast_recv(struct broadcast_conn *c, const linkaddr_t *from)
 {
 	
-	char *msg = (char *)packetbuf_dataptr();
-	char *nc = "nc";
-
-	if(strcmp(nc, msg) == 0){
-
-		struct beacon *msg;
-
-		msg = (struct values *) packetbuf_dataptr(); 
-
-		msg->metric = metric;
-		msg->seq= seq;
-
-		unicast_send(&uc, from);
-		
-
-	}
-	
 }
 //Calls broadcast_recv if a broadcast is recieved, executing whats in the broadcast_recv method
 static const struct broadcast_callbacks broadcast_call = {broadcast_recv};
-
 /*---------------------------------------------------------------------------*/
 
 //Code that is executed if a unicast signal is received.
 recv_uc(struct unicast_conn *c, const linkaddr_t *from)
 {
-	
-	char *msg = (char *)packetbuf_dataptr();
-
-	char *hello = "hello";
-	char *ok = "ok";
-
-	if(strcmp(hello, msg) == 0){
-
-		printf("TEST FROM - %d.%d\n\n", from->u8[0], from->u8[1]);
-
-		packetbuf_copyfrom("ok", 3);
-
-		unicast_send(&uc, from);
-
-	}
 
 }
 //Execute recv_uc if unicast signal is received
 static const struct unicast_callbacks unicast_callbacks = {recv_uc};
-
 /*---------------------------------------------------------------------------*/
 
 PROCESS_THREAD(broadcast_process, ev, data)
@@ -109,21 +74,22 @@ PROCESS_THREAD(broadcast_process, ev, data)
 	while(1) {
 			
     	//Set time for etimer
-			etimer_set(&etimer, 6000);
+		etimer_set(&etimer, 2222);
 
-			PROCESS_WAIT_EVENT();
+		PROCESS_WAIT_EVENT();
+
+        printf("2222 ETIMER\n\n");
 					
-			struct beacon *msg;
+		struct beacon *msg;
 
-			packetbuf_clear();
+		packetbuf_clear();
 
-			msg = (struct beacon *) packetbuf_dataptr(); 
+		msg = (struct beacon *) packetbuf_dataptr(); 
 
-			packetbuf_set_datalen(sizeof(struct beacon));
+		packetbuf_set_datalen(sizeof(struct beacon));
 
 		msg->metric = metric;
-		seq = seq + 1;
-		msg->seq = seq;
+		msg->seq = seq + 1;
 
 		//Broadcast packet to all sensors
 		broadcast_send(&broadcast);
